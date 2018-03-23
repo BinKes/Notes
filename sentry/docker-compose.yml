@@ -1,0 +1,48 @@
+sentry_redis:
+  image: redis:latest
+
+sentry_postgres:
+  image: postgres:latest
+  environment:
+    - POSTGRES_PASSWORD=secret
+    - POSTGRES_USER=sentry
+  volumes:
+    - ${SENTRY_DATA_DIR}:/var/lib/postgresql/data:rw
+
+sentry_web:
+  image: sentry:latest
+  environment:
+    - SENTRY_SECRET_KEY=${SENTRY_SECRET_KEY}
+    - SENTRY_EMAIL_HOST=${SENTRY_EMAIL_HOST}
+    - SENTRY_SERVER_EMAIL=${SENTRY_SERVER_EMAIL}
+    - SENTRY_EMAIL_USER=${SENTRY_EMAIL_USER}
+    - SENTRY_EMAIL_PASSWORD=${SENTRY_EMAIL_PASSWORD}
+  volumes:
+    - ${SENTRY_FILE_DIR}:/var/lib/sentry/files:rw
+  links:
+    - sentry_redis:redis
+    - sentry_postgres:postgres
+  ports:
+    - ${SENTRY_WEB_PORT}:9000
+
+sentry_cron:
+  image: sentry:latest
+  environment:
+    - SENTRY_SECRET_KEY=${SENTRY_SECRET_KEY}
+  links:
+    - sentry_redis:redis
+    - sentry_postgres:postgres
+  command: sentry run cron
+
+sentry_worker:
+  image: sentry:latest
+  environment:
+    - SENTRY_SECRET_KEY=${SENTRY_SECRET_KEY}
+    - SENTRY_EMAIL_HOST=${SENTRY_EMAIL_HOST}
+    - SENTRY_SERVER_EMAIL=${SENTRY_SERVER_EMAIL}
+    - SENTRY_EMAIL_USER=${SENTRY_EMAIL_USER}
+    - SENTRY_EMAIL_PASSWORD=${SENTRY_EMAIL_PASSWORD}
+  links:
+    - sentry_redis:redis
+    - sentry_postgres:postgres
+  command: sentry run worker
